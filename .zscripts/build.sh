@@ -5,7 +5,7 @@ exec 2>&1
 
 set -e
 
-# 获取脚本所在目录（.zscripts 目录，即 workspace-agent/.zscripts）
+# 获取脚本所在目录（.zscripts 目录）
 # 使用 $0 获取脚本路径（兼容 sh 和 bash）
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -41,7 +41,7 @@ bun run build
 
 # 校验 standalone 服务端入口是否生成（部署成功率守卫）。
 # Next 仅在 next.config 含 output:"standalone" 时产出 .next/standalone/server.js。
-# 若用户/AI 编辑项目时改写或删除了该配置，bun run build 仍会成功（static 照常
+# 若项目编辑时改写或删除了该配置，bun run build 仍会成功（static 照常
 # 产出、退出码 0），但 standalone 缺失——打出的包里没有 server.js，部署到 FC 后
 # start.sh 找不到 next-service-dist/server.js → 不启动 Next → Caddy:81 反代空的
 # 3000 → FC 健康检查 120s 超时失败（线上 warmup_412 / FunctionNotStarted 的主因）。
@@ -101,7 +101,7 @@ fi
 # 检查 Next.js 项目目录下是否有 mini-services 目录
 if [ -d "$NEXTJS_PROJECT_DIR/mini-services" ]; then
     echo "🔨 构建 mini-services..."
-    # 使用 workspace-agent 目录下的 mini-services 脚本
+    # 使用 .zscripts 目录下的 mini-services 脚本
     sh "$SCRIPT_DIR/mini-services-install.sh"
     sh "$SCRIPT_DIR/mini-services-build.sh"
 
@@ -135,7 +135,7 @@ if [ -d "public" ]; then
     cp -r public "$BUILD_DIR/next-service-dist/"
 fi
 
-# Python 不继承 workspace-agent 的 /home/z/.venv。若项目包含 Python 源码或
+# Python 不继承沙箱中的 /home/z/.venv。若项目包含 Python 源码或
 # 依赖清单，在构建期将生产依赖固化到产物，并保持 Python 源码的项目相对路径。
 PROJECT_DIR="$NEXTJS_PROJECT_DIR" BUILD_DIR="$BUILD_DIR" \
     bash "$SCRIPT_DIR/python-runtime-build.sh"

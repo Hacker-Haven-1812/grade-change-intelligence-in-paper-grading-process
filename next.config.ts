@@ -6,12 +6,10 @@ const nextConfig: NextConfig = {
   // simulation loop init effect, which can race with the WebSocket
   // connection. Re-enable for production builds.
   reactStrictMode: false,
-  // Allow the sandbox preview gateway origin to load Next.js dev assets
-  // without triggering cross-origin warnings in development. The wildcard
-  // covers any preview-* subdomain the orchestrator may assign.
+  // Allow local development origins to load Next.js dev assets without
+  // triggering cross-origin warnings. Add any preview gateway origin the
+  // deployment platform assigns you (e.g. *.preview.example.com) here.
   allowedDevOrigins: [
-    "*.space-z.ai",
-    "*.preview-*.space-z.ai",
     "localhost",
     "127.0.0.1",
   ],
