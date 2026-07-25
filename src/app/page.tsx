@@ -12,8 +12,22 @@ import { startSimulationLoop, useGradeChangeStore } from "@/hooks/useGradeChange
 
 export default function Home() {
   useEffect(() => {
-    const stop = startSimulationLoop();
-    return stop;
+    // startSimulationLoop is async because it dynamically imports
+    // socket.io-client (browser-only). We don't await it — the cleanup
+    // function is captured and returned to React.
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+    startSimulationLoop().then((fn) => {
+      if (cancelled) {
+        fn?.();
+      } else {
+        cleanup = fn;
+      }
+    });
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
   }, []);
 
   return (
@@ -130,7 +144,7 @@ function FooterNote() {
         </span>
       </div>
       <div className="font-mono">
-        GradeChange AI © 2026 · Built for International Industrial AI Hackathon · Predictive Quality Control Overlay
+        GradeChange AI © 2026 · Predictive Quality Control Overlay · v1.0.0
       </div>
     </footer>
   );

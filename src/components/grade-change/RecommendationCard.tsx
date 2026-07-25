@@ -41,6 +41,10 @@ export function RecommendationCard() {
   const reject = useGradeChangeStore((s) => s.rejectRecommendation);
   const retrainingProgress = useGradeChangeStore((s) => s.retrainingProgress);
   const lastRetrainedAt = useGradeChangeStore((s) => s.lastRetrainedAt);
+  // Subscribe to inputs reactively — using getState() in render bypasses
+  // Zustand's subscription and causes stale UI + hydration warnings.
+  const currentStockFlow = useGradeChangeStore((s) => s.inputs.stock_flow);
+  const currentMachineSpeed = useGradeChangeStore((s) => s.inputs.machine_speed);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [justAccepted, setJustAccepted] = useState(false);
   const [justRejected, setJustRejected] = useState(false);
@@ -120,14 +124,14 @@ export function RecommendationCard() {
         <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
           <AdjustmentCell
             label="Stock Flow"
-            current={useGradeChangeStore.getState().inputs.stock_flow}
+            current={currentStockFlow}
             suggested={rec.adjustments.suggested_stock_flow}
             unit="L/min"
             delta={rec.adjustments.stock_flow_delta}
           />
           <AdjustmentCell
             label="Machine Speed"
-            current={useGradeChangeStore.getState().inputs.machine_speed}
+            current={currentMachineSpeed}
             suggested={rec.adjustments.suggested_machine_speed}
             unit="m/min"
             delta={rec.adjustments.machine_speed_delta}
@@ -242,7 +246,7 @@ export function RecommendationCard() {
         {lastRetrainedAt && retrainingProgress >= 100 && (
           <div className="mt-3 flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <RefreshCw className="h-3 w-3" />
-            Last retrain: {new Date(lastRetrainedAt).toLocaleTimeString("en-GB", { hour12: false })} · feedback loop active
+            Last retrain: {formatRetrainTime(lastRetrainedAt)} · feedback loop active
           </div>
         )}
       </div>
@@ -358,4 +362,16 @@ function SourceChip({
       <span className="opacity-60">· {Math.round(source.weight * 100)}%</span>
     </span>
   );
+}
+
+/**
+ * Formats a retrain timestamp as HH:MM:SS using a fixed locale-independent
+ * format to avoid hydration mismatches from toLocaleTimeString.
+ */
+function formatRetrainTime(timestamp: number): string {
+  const d = new Date(timestamp);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
 }

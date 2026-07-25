@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   CartesianGrid,
@@ -17,8 +17,18 @@ import { Activity, Crosshair } from "lucide-react";
 import { useGradeChangeStore } from "@/hooks/useGradeChangeStore";
 
 export function TrajectoryChart() {
+  // Mount-gate: the chart uses Math.random() and Date.now() for the
+  // forward-prediction window, which would cause server/client hydration
+  // mismatches. We render a static placeholder during SSR and the real
+  // chart only after the client mounts.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const history = useGradeChangeStore((s) => s.history);
   const current = useGradeChangeStore((s) => s.current);
+  const riskProb = useGradeChangeStore((s) => s.recommendation.risk_prob);
 
   // Build chart data: actual BW, target BW, ±2.5% control limits, predicted forward window
   const data = useMemo(() => {
@@ -28,7 +38,9 @@ export function TrajectoryChart() {
       const lower = target * 0.975;
       return {
         idx: i,
-        time: new Date(s.timestamp).toLocaleTimeString("en-GB", { hour12: false }).slice(3),
+        // Use a stable HH:MM label derived from the sample index so server
+        // and client render identical strings.
+        time: formatTickTime(s.timestamp, i),
         actual: Number(s.actual_bw.toFixed(2)),
         target: Number(target.toFixed(2)),
         upper: Number(upper.toFixed(2)),
@@ -38,10 +50,12 @@ export function TrajectoryChart() {
     });
   }, [history]);
 
-  // Forward predicted trajectory — linear extrapolation from current state with decay
+  // Forward predicted trajectory — linear extrapolation from current state with decay.
+  // Only computed on the client (mounted) so Math.random doesn't break SSR.
   const predicted = useMemo(() => {
+    if (!mounted) return [];
     const lookahead = 12; // ~18 s forward
-    const risk = useGradeChangeStore.getState().recommendation.risk_prob;
+    const risk = riskProb;
     const start = current.actual_bw;
     const target = current.bw_target;
     const pts: { idx: number; predicted: number; time: string }[] = [];
@@ -58,7 +72,7 @@ export function TrajectoryChart() {
       });
     }
     return pts;
-  }, [history, current]);
+  }, [history, current, riskProb, mounted]);
 
   const merged = [...data, ...predicted];
 
@@ -270,4 +284,20 @@ function LegendDot({
       {label}
     </span>
   );
+}
+
+/**
+ * Formats a tick timestamp as HH:MM. Falls back to a stable index-based
+ * label when timestamp is 0 or negative (the SSR placeholder history) so
+ * the server and client render identical strings.
+ */
+function formatTickTime(timestamp: number, index: number): string {
+  if (timestamp > 0) {
+    const d = new Date(timestamp);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }
+  // SSR placeholder: use a stable synthetic label
+  return `T-${60 - index}`;
 }

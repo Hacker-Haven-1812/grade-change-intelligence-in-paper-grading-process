@@ -8,14 +8,30 @@ export function Header() {
   const running = useGradeChangeStore((s) => s.running);
   const toggleRunning = useGradeChangeStore((s) => s.toggleRunning);
   const retrainingCount = useGradeChangeStore((s) => s.retrainingCount);
-  const [now, setNow] = useState<Date>(() => new Date());
+  const wsConnected = useGradeChangeStore((s) => s.wsConnected);
+  const backendStatus = useGradeChangeStore((s) => s.backendStatus);
+  // Render a fixed placeholder clock until the client mounts — avoids
+  // server/client hydration mismatch on the live timestamp.
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  const clock = now.toLocaleTimeString("en-GB", { hour12: false });
+  const clock = now
+    ? now.toLocaleTimeString("en-GB", { hour12: false })
+    : "--:--:--";
+
+  // Map backendStatus to the QCS / DCS pill tones — they reflect the real
+  // state of the live stream + REST API connection.
+  const qcsTone: "emerald" | "amber" | "red" =
+    wsConnected ? "emerald" : backendStatus === "fallback" ? "amber" : "red";
+  const qcsDetail = wsConnected ? "LIVE · 200 Hz" : backendStatus === "fallback" ? "SIM · 1.5 Hz" : "OFFLINE";
+  const dcsTone: "emerald" | "amber" = backendStatus === "live" || backendStatus === "fallback" ? "emerald" : "amber";
+  const dcsDetail = backendStatus === "offline" ? "DEGRADED" : "STREAMING";
 
   return (
     <header className="sticky top-0 z-40 glass-panel border-b border-border/60">
@@ -46,14 +62,14 @@ export function Header() {
           <StatusPill
             icon={<ServerCog className="h-3.5 w-3.5" />}
             label="Honeywell QCS"
-            tone="emerald"
-            detail="LINKED"
+            tone={qcsTone}
+            detail={qcsDetail}
           />
           <StatusPill
             icon={<Radio className="h-3.5 w-3.5" />}
             label="DCS Historian"
-            tone="emerald"
-            detail="STREAMING"
+            tone={dcsTone}
+            detail={dcsDetail}
           />
           <StatusPill
             icon={<Cpu className="h-3.5 w-3.5" />}

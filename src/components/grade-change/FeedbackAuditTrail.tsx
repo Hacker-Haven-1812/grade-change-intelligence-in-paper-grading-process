@@ -55,8 +55,8 @@ export function FeedbackAuditTrail() {
               {log.map((entry) => (
                 <motion.div
                   key={entry.id}
-                  initial={{ opacity: 0, x: -8, height: 0 }}
-                  animate={{ opacity: 1, x: 0, height: "auto" }}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0 }}
                   className={cn(
                     "rounded-md border p-2.5 font-mono text-[11px]",
@@ -75,7 +75,7 @@ export function FeedbackAuditTrail() {
                       <span className="font-semibold text-foreground">{entry.action}</span>
                       <span className="text-muted-foreground">·</span>
                       <span className="text-muted-foreground">
-                        {new Date(entry.timestamp).toLocaleTimeString("en-GB", { hour12: false })}
+                        {formatEntryTime(entry.timestamp)}
                       </span>
                     </div>
                     <span
@@ -86,21 +86,33 @@ export function FeedbackAuditTrail() {
                           : "bg-emerald-500/20 text-emerald-300"
                       )}
                     >
-                      risk {(entry.risk_prob * 100).toFixed(0)}%
+                      risk {Math.round(entry.risk_prob * 100)}%
                     </span>
                   </div>
                   <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
                     <span>
-                      stock: <span className="text-foreground/90">{entry.inputs_snapshot.stock_flow.toFixed(0)} L/min</span>
+                      stock:{" "}
+                      <span className="text-foreground/90">
+                        {entry.inputs_snapshot?.stock_flow?.toFixed(0) ?? "—"} L/min
+                      </span>
                     </span>
                     <span>
-                      steam: <span className="text-foreground/90">{entry.inputs_snapshot.steam_pressure.toFixed(1)} bar</span>
+                      steam:{" "}
+                      <span className="text-foreground/90">
+                        {entry.inputs_snapshot?.steam_pressure?.toFixed(1) ?? "—"} bar
+                      </span>
                     </span>
                     <span>
-                      speed: <span className="text-foreground/90">{entry.inputs_snapshot.machine_speed.toFixed(0)} m/min</span>
+                      speed:{" "}
+                      <span className="text-foreground/90">
+                        {entry.inputs_snapshot?.machine_speed?.toFixed(0) ?? "—"} m/min
+                      </span>
                     </span>
                     <span>
-                      filler: <span className="text-foreground/90">{entry.inputs_snapshot.filler_flow.toFixed(1)} L/min</span>
+                      filler:{" "}
+                      <span className="text-foreground/90">
+                        {entry.inputs_snapshot?.filler_flow?.toFixed(1) ?? "—"} L/min
+                      </span>
                     </span>
                   </div>
                   {entry.reject_reason && (
@@ -109,10 +121,13 @@ export function FeedbackAuditTrail() {
                       <span className="font-semibold">{entry.reject_reason}</span>
                     </div>
                   )}
-                  {entry.applied_stock_flow !== undefined && (
+                  {/* Use != null so we skip both null (from Prisma Float?) and undefined. */}
+                  {entry.applied_stock_flow != null && (
                     <div className="mt-1.5 flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-300">
                       <span className="opacity-70">Applied:</span>
-                      <span className="font-semibold">stock → {entry.applied_stock_flow.toFixed(1)} L/min</span>
+                      <span className="font-semibold">
+                        stock → {entry.applied_stock_flow.toFixed(1)} L/min
+                      </span>
                     </div>
                   )}
                 </motion.div>
@@ -123,4 +138,17 @@ export function FeedbackAuditTrail() {
       </ScrollArea>
     </section>
   );
+}
+
+/**
+ * Formats an entry timestamp as HH:MM:SS. Uses a fixed locale-independent
+ * format to avoid server/client hydration mismatches that
+ * `toLocaleTimeString` would cause.
+ */
+function formatEntryTime(timestamp: number): string {
+  const d = new Date(timestamp);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `${hh}:${mm}:${ss}`;
 }

@@ -2,9 +2,12 @@
  * GradeChange AI — Core Inference Engine
  * ============================================
  * A self-contained, deterministic simulation of a paper-machine grade change.
- * Ports the original Python (scikit-learn + SHAP) pipeline into a TypeScript
- * engine that runs entirely client-side so the dashboard is fully interactive
- * without a backend.
+ *
+ * The engine ports the offline-trained scikit-learn pipeline (RandomForest
+ * classifier + TreeExplainer SHAP) into TypeScript so the dashboard can run
+ * the full inference loop client-side for live operator interaction. The same
+ * interfaces are exposed through the REST API (see `src/app/api/inference`)
+ * for headless consumption by the DCS / QCS bridge.
  *
  * Pipeline:
  *   1.  generateProcessState()   — synthetic stock/steam/speed/BW generator
