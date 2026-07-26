@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     return errorResponse("BAD_JSON", "Invalid JSON body");
   }
   const parsed = PROCESS_INPUTS_SCHEMA.safeParse(body);
-  if (!parseOk(parsed)) {
+  if (!parsed.success) {
     return errorResponse(
       "VALIDATION_ERROR",
       "Request body failed validation",

@@ -358,7 +358,8 @@ export async function startSimulationLoop() {
       console.warn("[qcs] live stream disconnected — falling back to synthetic tick");
     });
 
-    qcsSocket.on("qcs:sample", (sample: ProcessState) => {
+    qcsSocket.on("qcs:sample", (rawSample: any) => {
+      const sample = rawSample as ProcessState;
       const store = useGradeChangeStore.getState();
       if (!store.running) return;
       // The WS sample already contains all ProcessState fields; use it directly

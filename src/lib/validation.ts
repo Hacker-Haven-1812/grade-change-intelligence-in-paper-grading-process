@@ -133,7 +133,7 @@ export async function parseJsonBody(req: Request): Promise<unknown> {
  * `undefined` from a successful parse.
  */
 export function parseOk<T>(
-  result: z.SafeParseReturnType<T>
-): result is z.SafeParseSuccess<T> & { data: T } {
-  return result.success === true && (result as any).data != null;
+  result: { success: boolean; data?: T }
+): result is { success: true; data: T } {
+  return result.success === true && result.data !== undefined;
 }

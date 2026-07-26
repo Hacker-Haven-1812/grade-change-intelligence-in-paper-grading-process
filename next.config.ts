@@ -18,9 +18,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  eslint: {
-    ignoreDuringBuilds: false,
-  },
   // Compress responses and strip the X-Powered-By header so the deployment
   // does not leak framework fingerprint info.
   compress: true,
